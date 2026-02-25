@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord шаблон · Сервер для ютубера by ShizzyBoost</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Favicon (simple SVG) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%235865f2'>S</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Whitney', 'Segoe UI', 'Helvetica Neue', Roboto, sans-serif;
+        }
+
+        body {
+            background: #1e1f22;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Canvas для анимированных частиц (фон) */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            background: #1a1b1e;
+        }
+
+        .discord-card {
+            max-width: 1280px;
+            width: 100%;
+            background: #313338;
+            border-radius: 16px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #232428;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Верхняя полоса */
+        .header-bar {
+            background: #1e1f22;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            color: #b5bac1;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 1px solid #2b2d31;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+            margin-right: 20px;
+        }
+
+        .window-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f1f3f4;
+        }
+
+        .window-btn.red { background: #f23f42; }
+        .window-btn.yellow { background: #f8b424; }
+        .window-btn.green { background: #2b9c53; }
+
+        .server-name-badge {
+            background: #2b2d31;
+            padding: 4px 12px;
+            border-radius: 30px;
+            color: #dbdee2;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .server-name-badge i {
+            color: #23a559;
+            font-size: 12px;
+        }
+
+        .top-right-icons {
+            margin-left: auto;
+            display: flex;
+            gap: 18px;
+            color: #80848e;
+            font-size: 16px;
+        }
+
+        .main-layout {
+            display: flex;
+            height: 700px;
+        }
+
+        /* Левая панель каналов */
+        .channels-sidebar {
+            width: 280px;
+            background: #2b2d31;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            color: #949ba4;
+            overflow-y: auto;
+        }
+
+        .server-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 18px;
+            border-bottom: 2px solid #1e1f22;
+            margin-bottom: 16px;
+        }
+
+        .server-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f2f3f5;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .server-header h2 i {
+            color: #5865f2;
+            font-size: 22px;
+        }
+
+        .badge-creator {
+            background: #111214;
+            padding: 4px 8px;
+            border-radius: 30px;
+            font-size: 11px;
+            color: #b5bac1;
+        }
+
+        .category {
+            margin-top: 18px;
+        }
+
+        .category-title {
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 6px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #949ba4;
+            cursor: default;
+        }
+
+        .category-title i {
+            font-size: 12px;
+            color: #80848e;
+        }
+
+        .channel {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            margin: 2px 0;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #a9aeb8;
+            transition: 0.1s;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .channel:hover {
+            background: #3c3f45;
+            color: #dbdee2;
+        }
+
+        .channel i {
+            font-size: 18px;
+            width: 22px;
+            text-align: center;
+            color: #80848e;
+            flex-shrink: 0;
+        }
+
+        .channel .fa-hashtag, .channel .fa-volume-high { font-size: 14px; }
+
+        .channel span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Правая область контента (без изменений) */
+        .content-area {
+            flex: 1;
+            background: #313338;
+            padding: 30px 40px;
+            overflow-y: auto;
+            color: #e1e3e6;
+        }
+
+        .welcome-banner {
+            background: #1e1f22;
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #3b3f48;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .welcome-banner h1 {
+            font-size: 38px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
+
+        .welcome-banner h1 span {
+            background: #5865f2;
+            padding: 4px 14px;
+            font-size: 16px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .sub-creator {
+            font-size: 18px;
+            color: #b5bac1;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sub-creator i {
+            color: #fe5f5f;
+        }
+
+        .creator-tag {
+            background: #2b2d31;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-weight: 500;
+            color: #d5d9e0;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: #2b2d31;
+            border-radius: 40px;
+            padding: 8px 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #3d4048;
+        }
+
+        .stat-item i {
+            color: #23a559;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .info-card {
+            background: #2b2d31;
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid #3b3f48;
+        }
+
+        .info-card h3 {
+            font-size: 20px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #f2f3f5;
+        }
+
+        .info-card h3 i {
+            color: #5865f2;
+        }
+
+        .rule-list {
+            list-style: none;
+        }
+
+        .rule-list li {
+            margin: 12px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: #c3c7d0;
+            font-size: 15px;
+        }
+
+        .rule-list li i {
+            color: #23a559;
+            font-size: 16px;
+            margin-top: 2px;
+        }
+
+        .btn-discord {
+            background: #5865f2;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.15s;
+            margin-top: 20px;
+            border: 1px solid #4752c4;
+        }
+
+        .btn-discord:hover {
+            background: #4752c4;
+            transform: scale(1.02);
+        }
+
+        .btn-discord i {
+            font-size: 20px;
+        }
+
+        .footer-note {
+            margin-top: 40px;
+            border-top: 2px solid #2b2d31;
+            padding-top: 24px;
+            color: #7f858f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-note a {
+            color: #00aff4;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .shizzy-credit {
+            background: #1e1f22;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 14px;
+        }
+
+        .shizzy-credit i {
+            color: #f8b424;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1f22;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b3f48;
+            border-radius: 10px;
+        }
+
+        .hint-badge {
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            background: #111214cc;
+            color: #b5bac1;
+            padding: 6px 14px;
+            border-radius: 50px;
+            backdrop-filter: blur(5px);
+            font-size: 13px;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="discord-card">
+        <!-- Верхняя полоса -->
+        <div class="header-bar">
+            <div class="window-controls">
+                <div class="window-btn red"></div>
+                <div class="window-btn yellow"></div>
+                <div class="window-btn green"></div>
+            </div>
+            <div class="server-name-badge">
+                <i class="fa-regular fa-star"></i>  Сервер для ютубера · by ShizzyBoost
+            </div>
+            <div class="top-right-icons">
+                <i class="fa-regular fa-bell"></i>
+                <i class="fa-regular fa-message"></i>
+                <i class="fa-solid fa-user"></i>
+            </div>
+        </div>
+
+        <!-- Основная часть: сайдбар каналов + контент -->
+        <div class="main-layout">
+            <!-- Левая панель — точная структура каналов с сервера -->
+            <div class="channels-sidebar">
+                <div class="server-header">
+                    <h2><i class="fa-brands fa-youtube" style="color:#ff0033;"></i> Ютубер <span class="badge-creator">ShizzyBoost</span></h2>
+                </div>
+
+                <!-- Информация -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ИНФОРМАЦИЯ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>👋приветствия</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>📖правила</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>📰новости</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>📜расписание-видео</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🥺обо-мне</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💸донат</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>✍услуги</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>📶бусты</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎁плюшки-для-бустеров</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎉розыгрыши</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>❔опросы</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>📺видео</span></div>
+                </div>
+
+                <!-- Роли -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> РОЛИ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(👥) пол</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(😐) возраст</span></div>
+                </div>
+
+                <!-- ПИАР -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ПИАР</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(📜) информация</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(💲) пиар</span></div>
+                </div>
+
+                <!-- Помощь -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ПОМОЩЬ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(❓) помощь-bdfd</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(❓) помощь-по-серверу</span></div>
+                </div>
+
+                <!-- Логи сервера -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ЛОГИ СЕРВЕРА</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(💬) сообщения</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(⚒) модерация</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(🗿) роли</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(🔒) наказания</span></div>
+                </div>
+
+                <!-- Отзывы -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ОТЗЫВЫ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(🛠) отзывы-о-персонале</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(🎓) отзывы-сервера</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>(💙) отзывы-о-кодерах</span></div>
+                </div>
+
+                <!-- Основное -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ОСНОВНОЕ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💬 чат</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💬💸 чат-донатеров</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💬 чат-кодеров</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>⚡ чат-бустеров</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🖼 фотографии</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🤬 чат-маты</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🏷 персонал-чат</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🖥 команды</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🔞 nsfw</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>❗ отчёты-о-наказаниях</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🌟 меж-сервер</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>проверка</span></div>
+                </div>
+
+                <!-- Видео -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ВИДЕО</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎬 youtube</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>📝 коды-из-видео</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>❓ вопросы-для-видео</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎥 идеи-для-видео</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎥 жизнь-ромарио</span></div>
+                </div>
+
+                <!-- Развлечения -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> РАЗВЛЕЧЕНИЯ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🖨 фудулика</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>1⃣ считалочка</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>😂 mems-blog</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💵 economy</span></div>
+                </div>
+
+                <!-- Заявки -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ЗАЯВКИ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎭 персонал</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎰 разное</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>📃 жалобы</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🌟 эмоции</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎨 идеи</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>⌨ смена-ника</span></div>
+                </div>
+
+                <!-- Войсы (голосовые) -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> ВОЙСЫ</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-solid fa-volume-high"></i> <span>🎤 общалка</span></div>
+                    <div class="channel"><i class="fa-solid fa-volume-high"></i> <span>🎮 игры</span></div>
+                    <div class="channel"><i class="fa-solid fa-volume-high"></i> <span>🎤 проверка</span></div>
+                    <div class="channel"><i class="fa-solid fa-volume-high"></i> <span>🎞 мероприятия</span></div>
+                </div>
+
+                <!-- Коды bdfd -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> КОДЫ BDFD</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🛠 гайды</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🗒 информация</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🌍 модерация</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💵 экономика</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🎮 игры</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🤔 разное</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💡 идеи</span></div>
+                </div>
+
+                <!-- python -->
+                <div class="category">
+                    <div class="category-title"><span><i class="fa-regular fa-circle"></i> PYTHON</span> <i class="fa-regular fa-plus"></i></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🔎 гайды</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>🐍 коды</span></div>
+                    <div class="channel"><i class="fa-regular fa-hashtag"></i> <span>💡 идеи-для-кодов</span></div>
+                </div>
+
+                <!-- Нижняя панель пользователя (без изменений) -->
+                <div style="margin-top: auto; padding-top: 20px; color: #6d727b; font-size:13px; border-top: 2px solid #1e1f22; display: flex; gap: 8px;">
+                    <i class="fa-regular fa-circle-user"></i> shizzyboost <i class="fa-solid fa-microphone" style="margin-left: auto;"></i> <i class="fa-solid fa-headphones"></i> <i class="fa-solid fa-gear"></i>
+                </div>
+            </div>
+
+            <!-- Правая контентная область (без изменений) -->
+            <div class="content-area">
+                <div class="welcome-banner">
+                    <h1>
+                        <i class="fa-brands fa-discord"></i>  Сервер для ютубера 
+                        <span>ShizzyBoost</span>
+                    </h1>
+                    <div class="sub-creator">
+                        <i class="fa-regular fa-pen-to-square"></i> шаблон создан <span class="creator-tag"><i class="fa-regular fa-id-card"></i> ShizzyBoost</span>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stat-item"><i class="fa-regular fa-message"></i> 71 канал</div>
+                        <div class="stat-item"><i class="fa-regular fa-user"></i> 76 ролей</div>
+                        <div class="stat-item"><i class="fa-regular fa-calendar"></i>Обновлен: 25.02.2026</div>
+                    </div>
+                    <p style="margin-top: 25px; font-size: 17px; line-height: 1.5; background: #2b2d31; padding: 18px; border-radius: 20px;">
+                        Добро пожаловать в официальное сообщество! Этот шаблон создан <strong>by ShizzyBoost</strong>.
+                        <br>Здесь вы сможете обсуждать видео, делимся идеями, проводить стримы и просто тусить 🔥  
+                    </p>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3><i class="fa-regular fa-clipboard"></i> Пример правил:</h3>
+                        <ul class="rule-list">
+                            <li><i class="fa-regular fa-circle-check"></i> Уважайте друг друга, никакого хейта</li>
+                            <li><i class="fa-regular fa-circle-check"></i> Не спамить и не рекламировать без спроса</li>
+                            <li><i class="fa-regular fa-circle-check"></i> Контент для 18+ только в спец.каналах</li>
+                            <li><i class="fa-regular fa-circle-check"></i> Прислушиваемся к администрации</li>
+                        </ul>
+                    </div>
+                    <div class="info-card">
+                        <h3><i class="fa-regular fa-gem"></i> Пример описания:</h3>
+                        <ul class="rule-list">
+                            <li><i class="fa-regular fa-star"></i> Полностью настроенные права для ютубера</li>
+                            <li><i class="fa-regular fa-star"></i> Категория "Идеи для видео" с доступом для всех</li>
+                            <li><i class="fa-regular fa-star"></i> Приватная голосовая комната для записи подкастов</li>
+                            <li><i class="fa-regular fa-star"></i> Интеграция с YouTube и Discord-ботом Shizzy</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Кнопка приглашения -->
+                <a href="https://discord.new/Up9tutVuBYdP" target="_blank" style="text-decoration: none;">
+                    <div class="btn-discord">
+                        <i class="fa-brands fa-discord"></i>   Использовать шаблон бесплатно
+                        <i class="fas fa-check"></i>
+                    </div>
+                </a>
+
+                <div class="footer-note">
+                    <div><i class="fa-regular fa-copyright"></i> шаблон для Discord сервера представлен <span class="shizzy-credit"><i class="fas fa-user-o"></i> ShizzyBoost</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('particle-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let particles = [];
+
+            const PARTICLE_COUNT = 80;
+            const MAX_SPEED = 0.3;
+            const MIN_SIZE = 1.5;
+            const MAX_SIZE = 3.5;
+            const COLOR = 'rgba(255, 255, 255, 0.7)';
+
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        vx: (Math.random() - 0.5) * MAX_SPEED * 2,
+                        vy: (Math.random() - 0.5) * MAX_SPEED * 2,
+                        size: MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE),
+                    });
+                }
+            }
+
+            function resizeCanvas() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                initParticles();
+            }
+
+            function updateParticles() {
+                for (let p of particles) {
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    if (p.x < 0 || p.x > width) {
+                        p.vx *= -1;
+                        p.x = Math.min(Math.max(p.x, 0), width);
+                    }
+                    if (p.y < 0 || p.y > height) {
+                        p.vy *= -1;
+                        p.y = Math.min(Math.max(p.y, 0), height);
+                    }
+
+                    if (Math.random() < 0.01) {
+                        p.vx += (Math.random() - 0.5) * 0.1;
+                        p.vy += (Math.random() - 0.5) * 0.1;
+                        const max = MAX_SPEED * 1.5;
+                        p.vx = Math.min(Math.max(p.vx, -max), max);
+                        p.vy = Math.min(Math.max(p.vy, -max), max);
+                    }
+                }
+            }
+
+            function drawParticles() {
+                ctx.clearRect(0, 0, width, height);
+                for (let p of particles) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = COLOR;
+                    ctx.fill();
+                }
+            }
+
+            function animate() {
+                updateParticles();
+                drawParticles();
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+            });
+
+            resizeCanvas();
+            animate();
+        })();
+    </script>
+</body>
+</html>
